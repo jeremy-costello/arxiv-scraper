@@ -1,10 +1,11 @@
 from sentence_transformers import SentenceTransformer
 
 from indexer import get_index
+from reranker import get_reranking
 
 # QUERY
 input_query = 'What is a Transformer?'
-top_k_hits = 4
+top_k_hits = 128
 rerank = True
 
 # SQL inputs
@@ -13,11 +14,15 @@ text_column = 'abstract'
 # S-BERT inputs
 model_name = 'multi-qa-MiniLM-L6-cos-v1'
 embedding_path = f'{text_column}__{model_name}.pkl'
+cross_encoder_name = 'ms-marco-MiniLM-L-6-v2'
 
 # hnswlib inputs
 index_path = './hnswlib.index'
 
-index, arxiv_id_list = get_index(embedding_path, index_path)
+
+index, arxiv_id_list, corpus_list = get_index(embedding_path, index_path)
+
+index.set_ef(50)  # ef should always be > top_k_hits
 
 model = SentenceTransformer(model_name)
 query_embedding = model.encode(input_query)
@@ -28,6 +33,14 @@ hits = [{'corpus_id': id, 'score': 1-score} for id, score in zip(corpus_ids[0], 
 hits = sorted(hits, key=lambda x: x['score'], reverse=True)
 
 if rerank:
-    cross_encoder_input = [[input_query, ]]
+    sort_score = 'cross-score'
+    cross_encoder_input = [[input_query, corpus_list[hit['corpus_id']]] for hit in hits]
+    cross_scores = get_reranking(cross_encoder_input, cross_encoder_name)
+    for idx in range(len(cross_scores)):
+        hits[idx]['cross-score'] = cross_scores[idx]
+else:
+    sort_score = 'score'
+
+hits = sorted(hits, key=lambda x: x[sort_score], reverse=True)
 for hit in hits[:top_k_hits]:
-    print(f"score: {round(hit['score'], 3)} | arxiv id: {arxiv_id_list[hit['corpus_id']]}")
+    print(f"score: {round(hit[sort_score], 3)} | arxiv id: {arxiv_id_list[hit['corpus_id']]}")
