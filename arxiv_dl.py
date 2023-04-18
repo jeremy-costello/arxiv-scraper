@@ -1,4 +1,5 @@
 import os
+import re
 import shutil
 import requests
 from datetime import datetime
@@ -13,7 +14,7 @@ except ImportError:
 
 
 def main():
-    paper_id = '2110.12764'
+    paper_id = '2206.14268'
     get_full_text = True
 
     return_dict = get_paper_dict(paper_id, get_full_text)
@@ -45,15 +46,27 @@ def get_paper_dict(paper_id, get_full_text):
         author_dict['id'] = a['href']
         authors_dict['authors'].append(author_dict)
 
-    date_string = soup.find('div', {'class': 'dateline'}).text[1:-1].lstrip('Submitted on').strip()
-    date_full = datetime.strptime(date_string, '%d %b %Y')
-    date = datetime.strftime(date_full, '%Y-%m-%d')
-
+    date_string = soup.find('div', {'class': 'dateline'}).text
+    date_list = re.findall(r'\d{1,2}\s\w{3}\s\d{4}', date_string)
+    
+    if len(date_list) < 3:
+        submission_date_full = datetime.strptime(date_list[0], '%d %b %Y')
+        submission_date = datetime.strftime(submission_date_full, '%Y-%m-%d')
+    else:
+        raise ValueError('Date list too long!')
+        
+    if len(date_list) == 2:
+        revision_date_full = datetime.strptime(date_list[1], '%d %b %Y')
+        revision_date = datetime.strftime(revision_date_full, '%Y-%m-%d')
+    else:
+        revision_date = None
+    
     abstract = soup.find('blockquote', {'class': 'abstract'}).text.strip().lstrip('Abstract:').strip()
 
     return_dict['title'] = title
     return_dict['authors'] = authors_dict
-    return_dict['date'] = date
+    return_dict['date_submitted'] = submission_date
+    return_dict['date_revised'] = revision_date
     return_dict['abstract'] = abstract
 
     if get_full_text:
