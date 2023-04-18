@@ -39,7 +39,7 @@ if arxiv_id_list and corpus_list:
         corpus_embeddings = np.vstack((cache_data['embeddings'], corpus_embeddings))
 
     with open(embedding_path, 'wb') as f:
-        pickle.dump({'arxiv_ids': arxiv_id_list, 'embeddings': corpus_embeddings}, f)
+        pickle.dump({'arxiv_ids': arxiv_id_list, 'corpus_list': corpus_list, 'embeddings': corpus_embeddings}, f)
 
     conn.execute(f"UPDATE {table_name} SET {text_column}_embedding_model = ? WHERE {text_column}_embedding_model IS NULL OR {text_column}_embedding_model != ?",
                 (model_name, model_name))
