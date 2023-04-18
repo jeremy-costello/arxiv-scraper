@@ -1,6 +1,6 @@
 import pickle
-import hnswlib
 
+import hnswlib
 from sentence_transformers import SentenceTransformer, CrossEncoder
 
 

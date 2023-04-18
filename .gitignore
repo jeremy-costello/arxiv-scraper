@@ -131,6 +131,7 @@ dmypy.json
 # CUSTOM
 .idea/
 *.db
+*.db-journal
 *.pdf
 *.pkl
 *.index

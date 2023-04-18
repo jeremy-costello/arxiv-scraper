@@ -1,7 +1,7 @@
 import json
 import sqlite3
-import requests
 
+import requests
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
@@ -14,11 +14,12 @@ def main():
     table_name = 'arxiv_papers'
 
     # arxiv inputs
-    max_results = 128
-    start_date = '2017-06-12'
-    end_date = '2017-06-13'
+    max_results = 10000
+    start_date = '2023-01-01'
+    end_date = '2023-04-30'
     categories = {
-        'cs': ['CL']
+        'cs': ['AI', 'CL', 'CV', 'LG', 'NE'],
+        'stat': ['ML']
     }
 
     # other inputs

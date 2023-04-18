@@ -1,9 +1,9 @@
 import os
 import re
 import shutil
-import requests
 from datetime import datetime
 
+import requests
 from bs4 import BeautifulSoup
 
 try:
