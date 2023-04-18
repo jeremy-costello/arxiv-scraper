@@ -2,6 +2,7 @@ import os
 import pickle
 import sqlite3
 
+import hnswlib
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
@@ -14,6 +15,11 @@ text_column = 'abstract'
 # S-BERT inputs
 model_name = 'multi-qa-MiniLM-L6-cos-v1'
 embedding_path = f'{text_column}__{model_name}.pkl'
+
+# hnswlib inputs
+index_path = './hnswlib.index'
+hnsw_ef_construction = 400
+hnsw_M = 64
 
 
 conn = sqlite3.connect(database_name)
@@ -46,6 +52,14 @@ if arxiv_id_list and corpus_list:
 
     with open(embedding_path, 'wb') as f:
         pickle.dump(embedding_dict, f)
+    
+    index = hnswlib.Index(space='cosine', dim=corpus_embeddings.shape[1])
+    index.init_index(max_elements=corpus_embeddings.shape[0],
+                     ef_construction=hnsw_ef_construction,
+                     M=hnsw_M)
+    index.add_items(corpus_embeddings,
+                    list(range(corpus_embeddings.shape[0])))
+    index.save_index(index_path)
 
     conn.execute(f"UPDATE {table_name} SET {text_column}_embedding_model = ? WHERE {text_column}_embedding_model IS NULL OR {text_column}_embedding_model != ?",
                 (model_name, model_name))
