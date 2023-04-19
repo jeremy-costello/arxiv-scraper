@@ -13,8 +13,9 @@ table_name = 'arxiv_papers'
 text_column = 'abstract'
 
 # S-BERT inputs
-model_name = 'multi-qa-MiniLM-L6-cos-v1'
+model_name = 'sentence-transformers/allenai-specter'
 embedding_path = f'{text_column}__{model_name}.pkl'
+max_seq_length = 512
 
 # hnswlib inputs
 index_path = './hnswlib.index'
@@ -33,14 +34,13 @@ corpus_list = [row[1] for row in rows]
 
 if arxiv_id_list and corpus_list:
     model = SentenceTransformer(model_name)
+    model.max_seq_length = max_seq_length
     corpus_embeddings = model.encode(corpus_list, show_progress_bar=True, convert_to_numpy=True)
 
     if os.path.exists(embedding_path):
         with open(embedding_path, 'rb') as f:
             cache_data = pickle.load(f)
-        
-        print(cache_data['arxiv_ids'])
-        
+                
         arxiv_id_list = cache_data['arxiv_ids'].extend(arxiv_id_list)
         corpus_embeddings = np.vstack((cache_data['embeddings'], corpus_embeddings))
 

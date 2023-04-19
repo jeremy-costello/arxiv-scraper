@@ -7,7 +7,7 @@ from sentence_transformers import SentenceTransformer, CrossEncoder
 def main():
     # QUERY
     input_query = 'What is a Transformer?'
-    top_k_hits = 8
+    top_k_hits = 100
     rerank = True
 
     # SQL inputs
@@ -20,11 +20,14 @@ def main():
 
     # hnswlib inputs
     index_path = './hnswlib.index'
+    hnswlib_ef = 200
 
+
+    assert hnswlib_ef > top_k_hits
 
     index, arxiv_id_list, corpus_list = get_index(embedding_path, index_path, rerank)
 
-    index.set_ef(50)  # ef should always be > top_k_hits
+    index.set_ef(hnswlib_ef)  # ef should always be > top_k_hits
 
     model = SentenceTransformer(model_name)
     query_embedding = model.encode(input_query)
