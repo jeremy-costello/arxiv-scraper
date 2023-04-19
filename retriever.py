@@ -14,8 +14,8 @@ def main():
     text_column = 'abstract'
 
     # S-BERT inputs
-    model_name = 'multi-qa-MiniLM-L6-cos-v1'
-    embedding_path = f'{text_column}__{model_name}.pkl'
+    model_name = 'sentence-transformers/allenai-specter'
+    embedding_path = f"{text_column}__{model_name.replace('/', '_')}.pkl"
     cross_encoder_name = 'ms-marco-MiniLM-L-6-v2'
 
     # hnswlib inputs

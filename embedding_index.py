@@ -14,8 +14,9 @@ text_column = 'abstract'
 
 # S-BERT inputs
 model_name = 'sentence-transformers/allenai-specter'
-embedding_path = f'{text_column}__{model_name}.pkl'
-max_seq_length = 512
+embedding_path = f"{text_column}__{model_name.replace('/', '_')}.pkl"
+max_seq_length = None
+sep_token = '[SEP]'
 
 # hnswlib inputs
 index_path = './hnswlib.index'
@@ -25,16 +26,27 @@ hnsw_M = 64
 
 conn = sqlite3.connect(database_name)
 
-cursor = conn.execute(f"SELECT arxiv_id, {text_column} FROM {table_name} WHERE {text_column}_embedding_model IS NULL OR {text_column}_embedding_model != ?", (model_name,))
+cursor = conn.execute(f"SELECT arxiv_id, title, {text_column} FROM {table_name} WHERE {text_column}_embedding_model IS NULL OR {text_column}_embedding_model != ?", (model_name,))
 
 rows = cursor.fetchall()
 
 arxiv_id_list = [row[0] for row in rows]
-corpus_list = [row[1] for row in rows]
+title_list = [row[1] for row in rows]
+text_list = [row[2] for row in rows]
 
-if arxiv_id_list and corpus_list:
+if arxiv_id_list and title_list and text_list:
+    if text_column == 'abstract':
+        corpus_list = [title + sep_token + text for title, text in zip(title_list, text_list)]
+    elif text_column == 'full_text':
+        corpus_list = text_list
+    else:
+        raise ValueError('Invalid text column!')
+
     model = SentenceTransformer(model_name)
-    model.max_seq_length = max_seq_length
+
+    if max_seq_length is not None:
+        model.max_seq_length = max_seq_length
+
     corpus_embeddings = model.encode(corpus_list, show_progress_bar=True, convert_to_numpy=True)
 
     if os.path.exists(embedding_path):
