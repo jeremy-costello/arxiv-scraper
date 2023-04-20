@@ -26,9 +26,11 @@ hnsw_M = 64
 
 conn = sqlite3.connect(database_name)
 
-cursor = conn.execute(f"SELECT arxiv_id, title, {text_column} FROM {table_name} WHERE {text_column}_embedding_model IS NULL OR {text_column}_embedding_model != ?", (model_name,))
+c = conn.cursor()
 
-rows = cursor.fetchall()
+c.execute(f"SELECT arxiv_id, title, {text_column} FROM {table_name} WHERE {text_column}_embedding_model IS NULL OR {text_column}_embedding_model != ?", (model_name,))
+
+rows = c.fetchall()
 
 arxiv_id_list = [row[0] for row in rows]
 title_list = [row[1] for row in rows]
@@ -73,7 +75,7 @@ if arxiv_id_list and title_list and text_list:
                     list(range(corpus_embeddings.shape[0])))
     index.save_index(index_path)
 
-    conn.execute(f"UPDATE {table_name} SET {text_column}_embedding_model = ? WHERE {text_column}_embedding_model IS NULL OR {text_column}_embedding_model != ?",
+    c.execute(f"UPDATE {table_name} SET {text_column}_embedding_model = ? WHERE {text_column}_embedding_model IS NULL OR {text_column}_embedding_model != ?",
                 (model_name, model_name))
 
     conn.commit()

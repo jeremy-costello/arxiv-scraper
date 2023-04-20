@@ -1,3 +1,4 @@
+import gc
 import json
 import sqlite3
 
@@ -57,6 +58,12 @@ def main():
     api_url = 'https://export.arxiv.org/api/query'
     date_range = f"{start_date.replace('-', '')}000000 TO {end_date.replace('-', '')}235959"
 
+    c.execute(f"SELECT arxiv_id FROM {table_name}")
+    rows = c.fetchall()
+    arxiv_id_list = [row[0] for row in rows]
+    arxiv_id_set = set(arxiv_id_list)
+    assert len(arxiv_id_list) == len(arxiv_id_set)
+
     for cat, subcat_list in categories.items():
         for subcat in subcat_list:
             print(f'Category: {cat}.{subcat}')
@@ -75,20 +82,17 @@ def main():
             soup = BeautifulSoup(r.content, 'xml')
 
             for entry in tqdm(soup.find_all('entry')):
-                categories_dict = {
-                    'categories': []
-                }
-                categories = entry.find_all('category')
-                for category in categories:
-                    categories_dict['categories'].append(category['term'])
-
                 link = entry.find('link', {'type': 'text/html'})
                 paper_id = link['href'].split('/')[-1].split('v')[0]
 
-                c.execute(f"SELECT arxiv_id FROM {table_name} WHERE arxiv_id=?", (paper_id,))
-                result = c.fetchone()
-
-                if result is None:
+                if paper_id not in arxiv_id_set:
+                    categories_dict = {
+                        'categories': []
+                    }
+                    categories = entry.find_all('category')
+                    for category in categories:
+                        categories_dict['categories'].append(category['term'])
+                    
                     data_dict = get_paper_dict(paper_id, get_full_text)
 
                     full_text = data_dict['full_text']
