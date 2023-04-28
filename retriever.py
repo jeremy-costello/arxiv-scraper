@@ -26,6 +26,7 @@ def main():
     assert hnswlib_ef > top_k_hits
 
     index, arxiv_id_list, corpus_list = get_index(embedding_path, index_path, rerank)
+    print(len(corpus_list))
 
     index.set_ef(hnswlib_ef)  # ef should always be > top_k_hits
 

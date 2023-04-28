@@ -7,6 +7,11 @@ import numpy as np
 from sentence_transformers import SentenceTransformer
 
 
+'''
+- remove from lists and embeddings where model was changed
+'''
+
+
 # SQL inputs
 database_name = 'arxiv_database.db'
 table_name = 'arxiv_papers'
@@ -32,15 +37,16 @@ c.execute(f"SELECT arxiv_id, title, {text_column} FROM {table_name} WHERE {text_
 
 rows = c.fetchall()
 
-arxiv_id_list = [row[0] for row in rows]
+new_arxiv_id_list = [row[0] for row in rows]
 title_list = [row[1] for row in rows]
 text_list = [row[2] for row in rows]
 
-if arxiv_id_list and title_list and text_list:
+if new_arxiv_id_list and title_list and text_list:
+    # way to make sure there isn't a mix of these two in the SQL table
     if text_column == 'abstract':
-        corpus_list = [title + sep_token + text for title, text in zip(title_list, text_list)]
+        new_corpus_list = [title + sep_token + text for title, text in zip(title_list, text_list)]
     elif text_column == 'full_text':
-        corpus_list = text_list
+        new_corpus_list = text_list
     else:
         raise ValueError('Invalid text column!')
 
@@ -49,14 +55,27 @@ if arxiv_id_list and title_list and text_list:
     if max_seq_length is not None:
         model.max_seq_length = max_seq_length
 
-    corpus_embeddings = model.encode(corpus_list, show_progress_bar=True, convert_to_numpy=True)
+    new_corpus_embeddings = model.encode(new_corpus_list, show_progress_bar=True, convert_to_numpy=True)
 
     if os.path.exists(embedding_path):
         with open(embedding_path, 'rb') as f:
             cache_data = pickle.load(f)
-                
-        arxiv_id_list = cache_data['arxiv_ids'].extend(arxiv_id_list)
-        corpus_embeddings = np.vstack((cache_data['embeddings'], corpus_embeddings))
+        
+        old_arxiv_id_list = cache_data['arxiv_ids']
+        keep_arxiv_id_list = [x for x in old_arxiv_id_list if x not in new_arxiv_id_list]
+        removed_indices = [i for i, x in enumerate(old_arxiv_id_list) if x in new_arxiv_id_list]
+
+        arxiv_id_list = keep_arxiv_id_list.extend(new_arxiv_id_list)
+
+        old_corpus_list = cache_data['corpus_list']
+        keep_corpus_list = np.delete(old_corpus_list, removed_indices).tolist()
+
+        corpus_list = keep_corpus_list.extend(new_corpus_list)
+        
+        old_corpus_embeddings = cache_data['embeddings']
+        keep_corpus_embeddings = np.delete(old_corpus_embeddings, removed_indices, axis=0)
+
+        corpus_embeddings = np.vstack((keep_corpus_embeddings, new_corpus_embeddings))
 
     embedding_dict = {
         'arxiv_ids': arxiv_id_list,
